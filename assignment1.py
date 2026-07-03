@@ -1,95 +1,130 @@
 #!/usr/bin/env python3
+"""
+OPS445 Assignment 1 - Version C - Date Calculator
 
-'''
-OPS445 Assignment 1
-Program: assignment1.py 
-Author: "Sanjib Shrestha"
-Semester: "Summer 2026
-"
+This program calculates the number of weekend days between two dates.
+It automatically determines which date is earlier and uses it as the start date.
 
-The python code in this file (assignment1.py) is original work written by
-"Student Name". No code in this file is copied from any other source
-except those provided by the course instructor, including any person,
-textbook, or on-line resource. I have not shared this python script
-with anyone or anything except for submission for grading. I understand
-that the Academic Honesty Policy will be enforced and
-violators will be reported and appropriate action will be taken.
-'''
+Author: Sanjib Shrestha
+Student ID: sshrestha183
+Date: 2026/07/03
+
+Academic Honesty Declaration: I declare that this is my own original work.
+"""
 
 import sys
 
-def day_of_week(year: int, month: int, date: int) -> str:
-    "Based on the algorithm by Tomohiko Sakamoto"
-    days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] 
-    offset = {1:0, 2:3, 3:2, 4:5, 5:0, 6:3, 7:5, 8:1, 9:4, 10:6, 11:2, 12:4}
-    if month < 3:
-        year -= 1
-    num = (year + year//4 - year//100 + year//400 + offset[month] + date) % 7
-    return days[num]
 
 def leap_year(year):
-    if year % 400 == 0:
-        return True
-    elif year % 100 == 0:
-        return False
-    elif year % 4 == 0:
-        return True
-    else:
-        return False
+    return (year % 400 == 0) or (year % 4 == 0 and year % 100 != 0)
 
 
 def mon_max(month, year):
-    if month == 2:
-        if leap_year(year):
-            return 29
-        else:
-            return 28
-
-    mon_dict = {
-        1: 31,
-        3: 31,
-        4: 30,
-        5: 31,
-        6: 30,
-        7: 31,
-        8: 31,
-        9: 30,
-        10: 31,
-        11: 30,
-        12: 31
+    month_days = {
+        1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30,
+        7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31
     }
-
-    return mon_dict[month]
+    if month == 2 and leap_year(year):
+        return 29
+    return month_days[month]
 
 
 def after(date):
-    str_year, str_month, str_day = date.split('-')
+    day, month, year = (int(x) for x in date.split('/'))
+    day += 1
+    if day > mon_max(month, year):
+        day = 1
+        month += 1
+        if month > 12:
+            month = 1
+            year += 1
+    return f"{day:02d}/{month:02d}/{year:04d}"
 
-    year = int(str_year)
-    month = int(str_month)
-    day = int(str_day)
 
-    tmp_day = day + 1
+def before(date):
+    day, month, year = (int(x) for x in date.split('/'))
+    day -= 1
+    if day < 1:
+        month -= 1
+        if month < 1:
+            month = 12
+            year -= 1
+        day = mon_max(month, year)
+    return f"{day:02d}/{month:02d}/{year:04d}"
 
-    if tmp_day > mon_max(month, year):
-        to_day = 1
-        tmp_month = month + 1
+
+def valid_date(date):
+    try:
+        parts = date.split('/')
+        if len(parts) != 3:
+            return False
+        day, month, year = (int(x) for x in parts)
+        if month < 1 or month > 12:
+            return False
+        if day < 1 or day > mon_max(month, year):
+            return False
+        if year < 1:
+            return False
+        return True
+    except:
+        return False
+
+
+def day_of_week(day, month, year):
+    if month < 3:
+        month += 12
+        year -= 1
+    k = year % 100
+    j = year // 100
+    h = (day + (13 * (month + 1)) // 5 + k + k // 4 + j // 4 + 5 * j) % 7
+    days = ['sat', 'sun', 'mon', 'tue', 'wed', 'thu', 'fri']
+    return days[h]
+
+
+def day_count(start_date, end_date):
+    count = 0
+    current = start_date
+    while True:
+        day, month, year = (int(x) for x in current.split('/'))
+        if day_of_week(day, month, year) in ['sat', 'sun']:
+            count += 1
+        if current == end_date:
+            break
+        current = after(current)
+    return count
+
+
+def usage():
+    print("Usage: assignment1.py DD/MM/YYYY DD/MM/YYYY")
+    sys.exit(1)
+
+
+def main():
+    if len(sys.argv) != 3:
+        usage()
+    
+    date1 = sys.argv[1]
+    date2 = sys.argv[2]
+    
+    if not valid_date(date1) or not valid_date(date2):
+        usage()
+    
+    # Compare dates correctly
+    d1_day, d1_month, d1_year = (int(x) for x in date1.split('/'))
+    d2_day, d2_month, d2_year = (int(x) for x in date2.split('/'))
+    
+    # Convert to comparable numbers
+    date1_num = d1_year * 10000 + d1_month * 100 + d1_day
+    date2_num = d2_year * 10000 + d2_month * 100 + d2_day
+    
+    if date1_num <= date2_num:
+        start, end = date1, date2
     else:
-        to_day = tmp_day
-        tmp_month = month
-
-    if tmp_month > 12:
-        to_month = 1
-        year = year + 1
-    else:
-        to_month = tmp_month
-
-    next_date = f"{year}-{to_month:02}-{to_day:02}"
-
-    return next_date
+        start, end = date2, date1
+    
+    weekends = day_count(start, end)
+    print(f"The period between {start} and {end} includes {weekends} weekend days")
 
 
 if __name__ == "__main__":
-    print(after('2023-01-25'))
-    print(after('2016-02-28'))
-    print(after('2025-12-31'))
+    main()
